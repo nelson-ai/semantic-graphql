@@ -1,7 +1,7 @@
 const { GraphQLList } = require('graphql');
-const { xsdIri, rdfsLiteral, rdfsSubPropertyOf, rdfsRange } = require('../constants');
+const { xsdIri, rdfsLiteral, rdfsSubPropertyOf, rdfsRange, owlUnionOf,rdfFirst,rdfRest,rdfNil } = require('../constants');
 const warn = require('../utils/warn');
-const { walklook } = require('../graph/traversal');
+const { walklook, resolveUnionResources } = require('../graph/traversal');
 const memorize = require('../graph/memorize');
 const requireGraphqlRelay = require('../requireGraphqlRelay');
 const isGraphqlList = require('./isGraphqlList');
@@ -21,7 +21,7 @@ function getGraphqlFieldConfig(g, iri) {
   // Otherwise for each super-property, look for a range,
   // if not found, check their super-properties and so on
   // TODO: check walklook, maybe test it
-  const ranges = [...walklook(g, iri, rdfsSubPropertyOf, rdfsRange)];
+  const ranges = resolveUnionResources(g, [...walklook(g, iri, rdfsSubPropertyOf, rdfsRange)]);
   const nRanges = ranges.length;
 
   if (!nRanges) return;
