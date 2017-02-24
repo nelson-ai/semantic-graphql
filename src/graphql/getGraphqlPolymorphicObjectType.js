@@ -7,7 +7,7 @@ const getGraphqlObjectType = require('./getGraphqlObjectType');
 
 // Generate an IRI that represents the Union of some resources
 function getUnionIri(g, iris) {
-  const gqlNames = iris.map(x => getGraphqlName(g,x)).sort().join('/');
+  const gqlNames = iris.map(x => getGraphqlName(g,x)).sort().join(',');
   return `union:${gqlNames}`;
 }
 
@@ -56,4 +56,9 @@ function getGraphqlPolymorphicObjectType(g, iri) {
   return null;
 }
 
-module.exports = memorizeRangesAdapter(getGraphqlPolymorphicObjectType, 'graphqlPolymorphicObjectType');
+module.exports = {
+  getUnionIri,
+  memorizeRangesAdapter,
+  getGraphQlUnionObjectType,
+  getGraphqlPolymorphicObjectType : memorizeRangesAdapter(getGraphqlPolymorphicObjectType, 'graphqlPolymorphicObjectType')
+};
