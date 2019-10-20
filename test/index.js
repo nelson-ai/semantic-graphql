@@ -6,11 +6,11 @@ const commonTurtlePrefixes = require('./utils/commonTurtlePrefixes');
 const castArrayShape = require('../src/utils/castArrayShape');
 const isNil = require('../src/utils/isNil');
 const capitalize = require('../src/utils/capitalize');
-const { walkmap, walklook } = require('../src/graph/traversal');
-const { rdfsClass, rdfType, _rdfsDomain } = require('../src/constants');
+const { walkmap, walklook, resolveUnionResources } = require('../src/graph/traversal');
+const { rdfsClass, rdfType, _rdfsDomain, rdfsRange, owlUnionOf, rdfFirst, rdfRest, rdfNil  } = require('../src/constants');
 const ArrayKeyedMap = require('../src/ArrayKeyedMap');
 const SemanticGraph = require('..');
-
+const { getUnionIri, getGraphqlPolymorphicObjectType} = require('../src/graphql/getGraphqlPolymorphicObjectType');
 // TODO: split this file
 
 // NOTE: getIriLocalName and isIri will be imported from an external lib someday
@@ -40,6 +40,112 @@ describe('Utils', () => {
   });
 });
 
+describe('Graphql polymorphic Object Type', () => {
+
+  const graph = {
+    config: {
+      prefixes: { lllist:"list" }
+    },
+    a: {
+      x: ['b', 'c'],
+      y: ['d', 'e'],
+    },
+    b: {
+      x: ['a', 'c', 'd'],
+      z: ['a', 'f'],
+    },
+    c: {
+      x: ['c'],
+    },
+    d: {
+      y: ['a', 'b'],
+      z: ['c'],
+    },
+    e: {
+      z: ['c', 'd', 'g'],
+    },
+    f: {
+      x: ['g'],
+    },
+    g: {
+      y: ['a', 'f'],
+    },
+    h: {
+      [rdfsRange]: ['union:resource:1']
+    },
+    i: {
+      [rdfsRange]: ['union:resource:2']
+    },
+    'union:resource:empty': {
+      [owlUnionOf]: ['_:list:empty:node:1']
+    },
+    '_:list:empty:node:1': {
+      [rdfFirst]: [rdfNil],
+      [rdfRest]: [rdfNil]
+    },
+    'union:resource:single': {
+      [owlUnionOf]: ['_:list:_:node:1']
+    },
+    '_:list:_:node:1': {
+      [rdfFirst]: ['list:_:item:1'],
+      [rdfRest]: [rdfNil]
+    },
+    'union:resource:double': {
+      [owlUnionOf]: ['_:list:a:node:1']
+    },
+    '_:list:a:node:1': {
+      [rdfFirst]: ['list:a:item:1'],
+      [rdfRest]: ['_:list:a:node:2']
+    },
+    '_:list:a:node:2': {
+      [rdfFirst]: ['list:a:item:2'],
+      [rdfRest]: [rdfNil]
+    },
+    'union:resource:quad': {
+      [owlUnionOf]: ['_:list:b:node:1']
+    },
+    '_:list:b:node:1': {
+      [rdfFirst]: ['list:b:item:1'],
+      [rdfRest]: ['_:list:b:node:2']
+    },
+    '_:list:b:node:2': {
+      [rdfFirst]: ['list:b:item:2'],
+      [rdfRest]: '_:list:b:node:3'
+    },
+    '_:list:b:node:3': {
+      [rdfFirst]: ['list:b:item:3'],
+      [rdfRest]: '_:list:b:node:4'
+    },
+    '_:list:b:node:4': {
+      [rdfFirst]: ['list:b:item:4'],
+      [rdfRest]: [rdfNil]
+    },
+    'list:b;item;1': {
+      a: ['a']
+    },
+    'list:b;item;2': {
+      a: ['a']
+    },
+    'list:b;item;3': {
+      a: ['a']
+    },
+  };
+
+  it('Should Create a Union IRI from a range of resources', () => {
+    const unionIri = getUnionIri(graph, ['list:b;item;1','list:b;item;2','list:b;item;3']);
+    assert.deepEqual(unionIri, 'union:B_item_1,B_item_2,B_item_3');
+  })
+
+  it('Should Create a union type when given a range in IRI position', () => {
+    const unionResources = ['list:b;item;1','list:b;item;2','list:b;item;3'];
+    var createdType;
+    assert.doesNotThrow(() => {
+      createdType = getGraphqlPolymorphicObjectType(graph, unionResources);
+    });
+    assert.deepEqual(createdType._typeConfig.types.length, unionResources.length);
+  });
+})
+
 describe('Graph traversal', () => {
 
   const graph = {
@@ -67,6 +173,56 @@ describe('Graph traversal', () => {
     g: {
       y: ['a', 'f'],
     },
+    h: {
+      [rdfsRange]: ['union:resource:1']
+    },
+    i: {
+      [rdfsRange]: ['union:resource:2']
+    },
+    'union:resource:empty': {
+      [owlUnionOf]: ['_:list:empty:node:1']
+    },
+    '_:list:empty:node:1': {
+      [rdfFirst]: [rdfNil],
+      [rdfRest]: [rdfNil]
+    },
+    'union:resource:single': {
+      [owlUnionOf]: ['_:list:_:node:1']
+    },
+    '_:list:_:node:1': {
+      [rdfFirst]: ['list:_:item:1'],
+      [rdfRest]: [rdfNil]
+    },
+    'union:resource:double': {
+      [owlUnionOf]: ['_:list:a:node:1']
+    },
+    '_:list:a:node:1': {
+      [rdfFirst]: ['list:a:item:1'],
+      [rdfRest]: ['_:list:a:node:2']
+    },
+    '_:list:a:node:2': {
+      [rdfFirst]: ['list:a:item:2'],
+      [rdfRest]: [rdfNil]
+    },
+    'union:resource:quad': {
+      [owlUnionOf]: ['_:list:b:node:1']
+    },
+    '_:list:b:node:1': {
+      [rdfFirst]: ['list:b:item:1'],
+      [rdfRest]: ['_:list:b:node:2']
+    },
+    '_:list:b:node:2': {
+      [rdfFirst]: ['list:b:item:2'],
+      [rdfRest]: '_:list:b:node:3'
+    },
+    '_:list:b:node:3': {
+      [rdfFirst]: ['list:b:item:3'],
+      [rdfRest]: '_:list:b:node:4'
+    },
+    '_:list:b:node:4': {
+      [rdfFirst]: ['list:b:item:4'],
+      [rdfRest]: [rdfNil]
+    }
   };
 
   it('walkmap', () => {
@@ -87,6 +243,41 @@ describe('Graph traversal', () => {
     assert.deepEqual([...walklook(graph, 'g', 'y', 'x')], ['b', 'c', 'g']); // BFS with stop condition
     assert.deepEqual([...walklook(graph, 'g', 'x', 'z')], []);
     assert.deepEqual([...walklook(graph, 'c', 'x', 'z')], []);
+  });
+
+  it('resolves UnionResources that are empty unions', () => {
+    // Resolves any resources that represent a Union of resources
+    // The resource must contain an owl:unionOf predicate to be considered a union resource.
+    // Additionally the object of the owl:unionOf must be an rdf linked list, having predicates rdf:first, rdf:rest and rdf:nil
+    assert.deepEqual(resolveUnionResources(graph, ['union:resource:empty']), []);
+  });
+
+  it('resolves UnionResources that contain 1 item', () => {
+    // Resolves any resources that represent a Union of resources
+    // The resource must contain an owl:unionOf predicate to be considered a union resource.
+    // Additionally the object of the owl:unionOf must be an rdf linked list, having predicates rdf:first, rdf:rest and rdf:nil
+    assert.deepEqual(resolveUnionResources(graph, ['union:resource:single']), ['list:_:item:1']);
+  });
+
+  it('resolves UnionResources that contain 2 items', () => {
+    // Resolves any resources that represent a Union of resources
+    // The resource must contain an owl:unionOf predicate to be considered a union resource.
+    // Additionally the object of the owl:unionOf must be an rdf linked list, having predicates rdf:first, rdf:rest and rdf:nil
+    assert.deepEqual(resolveUnionResources(graph, ['union:resource:double']), ['list:a:item:1','list:a:item:2']);
+  });
+
+  it('resolves UnionResources that contain 4 items', () => {
+    // Resolves any resources that represent a Union of resources
+    // The resource must contain an owl:unionOf predicate to be considered a union resource.
+    // Additionally the object of the owl:unionOf must be an rdf linked list, having predicates rdf:first, rdf:rest and rdf:nil
+    assert.deepEqual(resolveUnionResources(graph, ['union:resource:quad']), ['list:b:item:1','list:b:item:2','list:b:item:3','list:b:item:4']);
+  });
+
+  it('resolves UnionResources that contain [0 && 1 && 2 && 4] items', () => {
+    // Resolves any resources that represent a Union of resources
+    // The resource must contain an owl:unionOf predicate to be considered a union resource.
+    // Additionally the object of the owl:unionOf must be an rdf linked list, having predicates rdf:first, rdf:rest and rdf:nil
+    assert.deepEqual(resolveUnionResources(graph, ['union:resource:empty','union:resource:single','union:resource:double','union:resource:quad']), ['list:_:item:1','list:a:item:1','list:a:item:2','list:b:item:1','list:b:item:2','list:b:item:3','list:b:item:4']);
   });
 });
 

@@ -3,7 +3,7 @@ const { readFileSync } = require('fs');
 const createRdfParser = require('n3').Parser;
 const {
   rdfIri, rdfsIri, owlIri, rdfsResource,
-  rdfType, rdfsLabel, rdfsComment, rdfsDomain, rdfsRange, rdfsSubClassOf, rdfsSubPropertyOf, owlInverseOf,
+  rdfType, rdfsLabel, rdfsComment, rdfsDomain, rdfsRange, rdfsSubClassOf, rdfsSubPropertyOf, owlInverseOf, owlUnionOf, rdfFirst, rdfRest
 } = require('./constants');
 const invariant = require('./utils/invariant');
 const isIri = require('./utils/isIri');
@@ -34,6 +34,9 @@ const workingPredicates = [
   rdfsSubClassOf,
   rdfsSubPropertyOf,
   owlInverseOf,
+  owlUnionOf,
+  rdfFirst,
+  rdfRest
 ];
 
 parseFileAndIndex(baseGraph, '../ontologies/rdf.ttl');

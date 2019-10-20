@@ -17,6 +17,10 @@ x.rdfsSubClassOf = `${x.rdfsIri}subClassOf`;
 x.rdfsSubPropertyOf = `${x.rdfsIri}subPropertyOf`;
 x.owlFunctionalProperty = `${x.owlIri}FunctionalProperty`;
 x.owlInverseOf = `${x.owlIri}inverseOf`;
+x.owlUnionOf = `${x.owlIri}unionOf`;
+x.rdfFirst = `${x.rdfIri}first`;
+x.rdfRest = `${x.rdfIri}rest`;
+x.rdfNil = `${x.rdfIri}nil`;
 
 x._rdfType = `_${x.rdfType}`;
 x._rdfsDomain = `_${x.rdfsDomain}`;

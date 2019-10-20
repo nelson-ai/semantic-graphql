@@ -1,4 +1,5 @@
 const warn = require('../utils/warn');
+const { rdfsRange, owlUnionOf, rdfFirst, rdfRest, rdfNil  } = require('../constants');
 
 // Possible bug: stack overflow
 
@@ -36,7 +37,42 @@ function walklook(g, iri, walkIri, lookIri, s = new Set(), ws = new Set()) {
   return s;
 }
 
+// TODO: Possible bug: stack overflow - using recursive function without debounce (_walkLinkedList).
+// Resolves any resources that represent a Union of resources
+// The resource must contain an owl:unionOf predicate to be considered a union resource.
+// Additionally the object of the owl:unionOf must be an rdf linked list, having predicates rdf:first, rdf:rest and rdf:nil
+// Inputs: 
+// g : graph
+// resources : array[iri] 
+// returns: array[iri] after replacing all union iris with the resources in the union.
+function resolveUnionResources (g, resources) {
+  function _walkLinkedList(listNode) {
+    const head = g[listNode][rdfFirst]
+    if (listNode != rdfNil && head && head != rdfNil) {
+      const tail = g[listNode][rdfRest];
+      if (tail && tail != rdfNil) {
+        return [head].concat(_walkLinkedList(tail));
+      }
+      return [head];
+    }        
+    return [];
+  }
+
+  const unionResources = resources
+    .filter((iri) => g[iri][owlUnionOf])
+    // flatMap
+    .reduce((list, iri) => list.concat(g[iri][owlUnionOf]), [])
+    // flatMap
+    .reduce((list, listNode) => list.concat.apply(list,_walkLinkedList(listNode)), []);
+
+  const nonUnionResources = resources
+    .filter((iri) => !g[iri][owlUnionOf]);
+
+  return nonUnionResources.concat(unionResources).sort();
+}
+
 module.exports = {
   walkmap,
   walklook,
+  resolveUnionResources
 };
